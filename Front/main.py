@@ -4,15 +4,14 @@ import sys
 sys.path[0]=sys.path[0]+"\\.."
 print(sys.path[0])
 import subprocess
+from MDFFeatures.PandasConverter import PandasConverter
 from threading import Thread
 from PyQt5.QtWidgets import (
      QMainWindow,QApplication, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QFileDialog,
     QListWidget, QLabel, QAbstractItemView
 )
-from Front.Healpers.CSVLoader import process_csv_files
-from MDFFeatures.CSVConverter import CSVConverter
+from Front.Healpers.CSVLoader import process_pickled_files
 from MDFFeatures.pathHandler import PathHandler
-import mdfreader
 from MDFFeatures.fileHandler import FileHandler
 
 class FileSelectorApp(QMainWindow):
@@ -138,6 +137,7 @@ class FileSelectorApp(QMainWindow):
         for item in selected_items:
             self.availableFilesListWidget.addItem(item.text())
             self.selectedFilesListWidget.takeItem(self.selectedFilesListWidget.row(item))
+        self.updateFileList()
 
     def processSelectedFiles(self):
         """once the files are selected this will take in all the iteams highlighted and runs the table
@@ -150,8 +150,8 @@ class FileSelectorApp(QMainWindow):
                 for item in selected_items:
                     file_name = item.text()
                     file_path = os.path.join(self.outputDirectory, file_name)
-                    if not file_name.lower().endswith('.csv'):
-                        self.selectedFileLabel.setText("Selected file is not a CSV.")
+                    if not file_name.lower().endswith('.pkl'):
+                        self.selectedFileLabel.setText("Selected file is not a Pickled File.")
                         self.current_processing = False
                         return
                     self.run_command(file_path)
@@ -169,7 +169,7 @@ class FileSelectorApp(QMainWindow):
             return
         
         pathhandler1 = PathHandler(self.inputDirectory, self.outputDirectory)
-        converter1 = CSVConverter(mdfreader, self.outputDirectory)
+        converter1 = PandasConverter( self.outputDirectory)
         fileh = FileHandler(pathhandler1, converter1)
         fileh.convert()
 
@@ -180,7 +180,7 @@ class FileSelectorApp(QMainWindow):
                 for item in selected_items:
                     file_name = item.text()
                     input_file_path = os.path.join(self.inputDirectory, file_name)
-                    output_file_path = os.path.join(self.outputDirectory, file_name.replace('.mdf', '.csv'))
+                    output_file_path = os.path.join(self.outputDirectory, file_name.replace('.mdf', '.pkl'))
 
                     if not file_name.lower().endswith('.mdf'):
                         self.selectedFileLabel.setText("Selected file is not an MDF.")
@@ -212,15 +212,15 @@ class FileSelectorApp(QMainWindow):
                 file_paths = [os.path.join(self.outputDirectory, item.text()) for item in selected_items]
                 
                 # Call the process_csv_files function with the list of file paths
-                process_csv_files(file_paths)
+                process_pickled_files(file_paths)
                 
                 # Path to the generated report file
-                report_file_path = os.path.join(self.outputDirectory, 'combined_output.csv')
+                report_file_path = os.path.join(self.outputDirectory, 'report.pkl')
                 
-                # Run the tabler.py script on the generated report file
+                print(report_file_path)
                 if os.path.exists(report_file_path):
                     try:
-
+                        print("file path",report_file_path)
                         command = ['python',  '.\\front\\SubWidgets\\table.py', report_file_path]
                         print(command)
                         # Execute the command
@@ -241,7 +241,7 @@ class FileSelectorApp(QMainWindow):
                 self.current_processing = False
             else:
                 self.selectedFileLabel.setText("A file is already being processed.")
-
+        self.updateFileList()
     def run_command(self, file_path):
         """this funtion is responsable for calling the table by bash command thus utilises multi threading to 
         open multiple tables at once and let's the use manipulates them

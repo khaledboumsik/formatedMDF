@@ -1,11 +1,11 @@
 import pandas as pd
 import os
-def process_csv_files(file_paths):
+def process_pickled_files(file_paths):
     data_records = []
 
     for filepath in file_paths:
-        if filepath.endswith('.csv'):
-            df = pd.read_csv(filepath)
+        if filepath.endswith('.pkl'):
+            df = pd.read_pickle(filepath)
             
             # Identify columns that start with 'CODES_DEFAUT'
             default_code_columns = [col for col in df.columns if col.startswith('CODES_DEFAUT')]
@@ -29,7 +29,7 @@ def process_csv_files(file_paths):
                         data_records.append({
                             'Filename': os.path.basename(filepath),
                             'Default_Code': column,
-                            'Value_Index': i +1 ,
+                            'Value_Index': i + 1,
                             'Code_Value': value
                         })
 
@@ -62,8 +62,8 @@ def process_csv_files(file_paths):
 
         final_df.columns = new_column_names
 
-        output_filepath = os.path.join(os.path.dirname(file_paths[0]), 'combined_output.csv')
-        final_df = final_df.drop('Value_0', axis=1)
-        final_df.to_csv(output_filepath, index=False)
+        output_filepath = os.path.join(os.path.dirname(file_paths[0]), 'Report.pkl')
+        final_df = final_df.drop('Value_0', axis=1, errors='ignore')  # Use errors='ignore' to avoid KeyError if 'Value_0' is not present
+        final_df.to_pickle(output_filepath)  # Removed index=False as it's not supported for to_pickle
     else:
-        print("No CSV files with 'DEFAULT_CODE' columns were found.")
+        print("No pickled files with 'DEFAULT_CODE' columns were found.")

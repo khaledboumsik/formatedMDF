@@ -1,9 +1,9 @@
 from MDFFeatures.pathHandler import PathHandler
+from MDFFeatures.PandasConverter import PandasConverter
 import os
-from MDFFeatures.standardConverter import StandardConverter
 class FileHandler:
 
-    def __init__(self,Paths=PathHandler(),Converter=StandardConverter()) -> None:
+    def __init__(self,Converter,Paths=PathHandler()) -> None:
         self.Paths=Paths
         self.Converter=Converter
         self.Files=[]

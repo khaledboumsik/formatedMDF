@@ -3,7 +3,7 @@ import pandas as pd
 from PyQt5.QtWidgets import QApplication, QMainWindow, QTableView, QVBoxLayout, QWidget, QLabel, QLineEdit, QPushButton, QHBoxLayout
 from PyQt5.QtCore import QAbstractTableModel, Qt, QModelIndex
 from difflib import get_close_matches
-
+import pickle
 class PandasModel(QAbstractTableModel):
     def __init__(self, data_frame, parent=None):
         super(PandasModel, self).__init__(parent)
@@ -58,15 +58,12 @@ class CSVViewer(QMainWindow):
 
         # Store the table views
         self.table_views = []
-
-        # Add data frames and titles to the layout
-        for title, data_frame in data_frames_with_titles:
-            layout.addWidget(QLabel(title))
-            table_view = QTableView()
-            model = PandasModel(data_frame)
-            table_view.setModel(model)
-            self.table_views.append((title, table_view, model))
-            layout.addWidget(table_view)
+        layout.addWidget(QLabel(data_frames_with_titles[0]))
+        table_view = QTableView()
+        model = PandasModel(data_frames_with_titles[1])
+        table_view.setModel(model)
+        self.table_views.append((data_frames_with_titles[0], table_view, model))
+        layout.addWidget(table_view)
 
         container = QWidget()
         container.setLayout(layout)
@@ -106,16 +103,23 @@ def concatenate_csv_files(file_paths):
     data_frames_with_titles = list(zip(titles, df_list))
     return data_frames_with_titles
 
+
+def ProcessPickledDF(file_path):
+    with open(file_path, 'rb') as file:
+        # Deserialize the data from the file
+        df = pickle.load(file)
+    df['Source File'] = file_path  # Add a column indicating the source file
+    title=f"Contents of {file_path.split('/')[-1]}"  # Create a title for each file
+    data_frames_with_titles = [title, df] 
+    return data_frames_with_titles
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python tabler.py <path_to_csv_file1> <path_to_csv_file2> ...")
         sys.exit(1)
 
     file_paths = sys.argv[1:]
-
-    print(file_paths)
-    data_frames_with_titles = concatenate_csv_files(file_paths)
-
+    data_frames_with_titles = ProcessPickledDF(file_paths[0])
     app = QApplication(sys.argv)
     viewer = CSVViewer(data_frames_with_titles)
     viewer.show()
