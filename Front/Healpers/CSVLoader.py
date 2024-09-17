@@ -1,37 +1,44 @@
 import pandas as pd
 import os
-def process_csv_files(file_paths):
+from MDFFeatures.PandasConverter import PandasConverter
+from MDFFeatures.INIHandler import Configuration
+def format_channels(channels):
+    res=[]
+    for channel in channels:
+        res.extend(channel.split(";"))
+    return res
+def process_csv_files(Configuration_path):
     data_records = []
-
-    for filepath in file_paths:
-        if filepath.endswith('.csv'):
-            df = pd.read_csv(filepath)
-            
-            # Identify columns that start with 'CODES_DEFAUT'
-            default_code_columns = [col for col in df.columns if col.startswith('CODES_DEFAUT')]
-            print("Columns identified:", default_code_columns)
-            
-            if default_code_columns:
-                # Collect unique values for each code column
-                for column in default_code_columns:
-                    unique_values = df[column].dropna().unique()
-                    sorted_values = sorted(map(str, unique_values))  # Sort values in ascending order
-                    num_unique_values = len(sorted_values)
-                    
+    data=Configuration(Configuration_path)
+    channels=format_channels(data['channels'])
+    PC=PandasConverter(os.path.split(Configuration_path)[0])
+    for filepath in data["MDF"]:
+        df=PC.convert(filepath,os.path.split(Configuration_path)[0])
+        # Identify columns that start with 'CODES_DEFAUT'
+        default_code_columns = [col for col in df.columns if col in channels]
+        print("Columns identified:", default_code_columns)
+        
+        if default_code_columns:
+            # Collect unique values for each code column
+            for column in default_code_columns:
+                unique_values = df[column].dropna().unique()
+                sorted_values = sorted(map(str, unique_values))  # Sort values in ascending order
+                num_unique_values = len(sorted_values)
+                
+                data_records.append({
+                    'Filename': os.path.basename(filepath),
+                    'Default_Code': column,
+                    'Num_Distinct_Values': num_unique_values
+                })
+                
+                # Append sorted distinct values as separate records
+                for i, value in enumerate(sorted_values):
                     data_records.append({
                         'Filename': os.path.basename(filepath),
                         'Default_Code': column,
-                        'Num_Distinct_Values': num_unique_values
+                        'Value_Index': i +1 ,
+                        'Code_Value': value
                     })
-                    
-                    # Append sorted distinct values as separate records
-                    for i, value in enumerate(sorted_values):
-                        data_records.append({
-                            'Filename': os.path.basename(filepath),
-                            'Default_Code': column,
-                            'Value_Index': i +1 ,
-                            'Code_Value': value
-                        })
 
     if data_records:
         # Create a DataFrame from the collected records
@@ -62,8 +69,10 @@ def process_csv_files(file_paths):
 
         final_df.columns = new_column_names
 
-        output_filepath = os.path.join(os.path.dirname(file_paths[0]), 'combined_output.csv')
+        output_filepath = os.path.join(os.path.split(os.path.abspath(__file__)[0]), 'combined_output.csv')
         final_df = final_df.drop('Value_0', axis=1)
+        print("output",output_filepath)
         final_df.to_csv(output_filepath, index=False)
+        return output_filepath
     else:
         print("No CSV files with 'DEFAULT_CODE' columns were found.")

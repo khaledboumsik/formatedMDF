@@ -1,28 +1,28 @@
-from MDFFeatures.standardConverter import StandardConverter
 import os
 import pickle
-class CSVConverter(StandardConverter):
-    def __init__(self,MDFReader,OutputPath) -> None:
-        self.OutputPath=OutputPath
-        super().__init__(MDFReader)
+from asammdf import MDF
+
+class PandasConverter():
+    def __init__(self,OutputPath) -> None:
         self.cached=set(os.listdir(OutputPath))
+        self.OutputPath=OutputPath
     def convert(self, input_path, output_path):
-        file_name = os.path.basename(input_path)
-        
-        if file_name in self.cached:
+        file_name = os.path.basename(input_path).replace('.mdf', '')  # Adjust based on your file extension
+        pickled_file_path = os.path.join(self.OutputPath, file_name + ".pkl")
+
+        if file_name + ".pkl" in self.cached:
             print(f"The file with the name {file_name} is already converted.")
-            with open(os.path.join(input_path,file_name+".pkl"), 'rb') as file:
+            with open(pickled_file_path, 'rb') as file:
                 data = pickle.load(file)
             return data
         else:
-            # Perform the conversion
             print(f"Processing file: {input_path}")
             print(f"Output path: {output_path}")
+            mdf_obj = MDF(input_path)
+            df = mdf_obj.to_dataframe()
             
-            # Assuming self.MDFReader.Mdf is defined elsewhere
-            yop = self.MDFReader.Mdf(input_path)
-            yop.convert_to_pandas()
-            yop.to_pickle(os.path.join(self.OutputPath,file_name+".pkl"))
-            # Update the cache
+            with open(pickled_file_path, 'wb') as file:
+                pickle.dump(df, file)
+            
             self.cached.add(file_name)
-        return yop
+        return df
